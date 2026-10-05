@@ -100,7 +100,7 @@ class PublicRealizationViewSet(ReadOnlyModelViewSet):
         types = list(
             base.values("realization_type").annotate(total=Count("id")).order_by("-total")
         )
-        labels = dict(RealizationTypeChoices)
+        labels = {value: label for value, label in RealizationTypeChoices.choices}
         return Response(
             {
                 "types": [

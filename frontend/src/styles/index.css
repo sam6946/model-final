@@ -1,18 +1,256 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/inter/index.css';
+@import '@fontsource-variable/plus-jakarta-sans/index.css';
 
+/* ==========================================================================
+   KEMTA — système de design
+   Palette, typographie, rythme vertical et composants de base.
+   Tout est centralisé ici : les pages ne redéfinissent jamais une couleur.
+   ========================================================================== */
 @theme {
+  /* Bleu institutionnel (confiance, sérieux) */
   --color-k-blue: #063b5c;
   --color-k-blue-dark: #042e48;
   --color-k-blue-soft: #eaf1f6;
+  --color-k-blue-line: #c9d8e2;
+
+  /* Vert (validation, avancement, terrain) */
   --color-k-green: #20a04b;
   --color-k-green-dark: #15803d;
   --color-k-green-pale: #e8f7ed;
+
+  /* Neutres */
+  --color-k-white: #ffffff;
   --color-k-mist: #f5f7f8;
   --color-k-line: #e3e8ec;
   --color-k-muted: #64748b;
   --color-k-ink: #17212b;
+
+  --color-k-amber: #b45309;
+  --color-k-amber-pale: #fdf6e9;
+  --color-k-red: #b42318;
+  --color-k-red-pale: #fdecea;
+
   --font-display: 'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, sans-serif;
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+
+  --radius-k-sm: 0.375rem;
   --radius-k: 0.625rem;
   --radius-k-lg: 0.875rem;
+  --radius-k-xl: 1.25rem;
+
+  --shadow-k-sm: 0 1px 2px rgba(23, 33, 43, 0.06);
+  --shadow-k: 0 6px 18px -8px rgba(6, 59, 92, 0.18);
+  --shadow-k-lg: 0 24px 48px -32px rgba(6, 59, 92, 0.35);
+
+  --ease-k: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* --------------------------------------------------------------- fondations */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-k-white);
+    color: var(--color-k-ink);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    color: var(--color-k-ink);
+    letter-spacing: -0.022em;
+    line-height: 1.14;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  h1 {
+    font-weight: 700;
+    font-size: clamp(2.1rem, 5.2vw, 3.6rem);
+  }
+
+  h2 {
+    font-weight: 700;
+    font-size: clamp(1.6rem, 3.4vw, 2.5rem);
+  }
+
+  h3 {
+    font-weight: 600;
+    font-size: clamp(1.15rem, 2vw, 1.4rem);
+    letter-spacing: -0.015em;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  img,
+  picture,
+  video {
+    display: block;
+    max-width: 100%;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+
+  :focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--color-k-green) 55%, transparent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-k-green) 25%, transparent);
+  }
+
+  /* Respect des préférences d'accessibilité : aucune animation de mouvement. */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+/* ------------------------------------------------------------- mise en page */
+@utility k-container {
+  width: 100%;
+  max-width: 76rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .k-container {
+    padding-inline: 2rem;
+  }
+}
+
+@utility k-section {
+  padding-block: 4.5rem;
+}
+
+@media (min-width: 768px) {
+  .k-section {
+    padding-block: 6.5rem;
+  }
+}
+
+/* En-tête de section : surtitre + titre + chapô, alignement maîtrisé */
+@utility k-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-k-green-dark);
+}
+
+@utility k-lead {
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  color: var(--color-k-muted);
+  max-width: 44rem;
+}
+
+@utility k-card {
+  background: var(--color-k-white);
+  border: 1px solid var(--color-k-line);
+  border-radius: var(--radius-k-lg);
+}
+
+@utility k-hairline {
+  height: 1px;
+  background: var(--color-k-line);
+  border: 0;
+}
+
+/* Soulignement animé discret (liens de navigation) */
+@utility k-underline {
+  position: relative;
+}
+
+.k-underline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  height: 2px;
+  width: 100%;
+  background: var(--color-k-green);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.28s var(--ease-k);
+}
+
+.k-underline:hover::after,
+.k-underline[data-active='true']::after {
+  transform: scaleX(1);
+}
+
+/* Apparition au défilement — désactivée si l'utilisateur refuse le mouvement */
+@utility k-reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 0.6s var(--ease-k),
+    transform 0.6s var(--ease-k);
+}
+
+.k-reveal[data-visible='true'] {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .k-reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Quadrillage technique très discret, utilisé sur les bandeaux bleus */
+@utility k-grid-lines {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 44px 44px;
 }

@@ -9,6 +9,7 @@ Le frontend affiche ``message`` tel quel : chaque message doit être humain.
 from __future__ import annotations
 
 import logging
+import re
 import uuid
 
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError as DjangoValidationError
@@ -92,6 +93,34 @@ def human_message(code: str, field: str | None = None, detail: str | None = None
     return detail or messages.get(code, "Les informations transmises sont incomplètes ou invalides.")
 
 
+# Messages génériques produits par DRF lui-même : ceux-là seuls doivent être
+# remplacés par un texte plus humain. Tout message rédigé par nos sérialiseurs
+# (français, précis, contextuel) est conservé tel quel.
+DRF_DEFAULT_PATTERNS = (
+    re.compile(r"^The value .* is not a valid", re.IGNORECASE),
+    re.compile(r"^La valeur .* n'est pas valide", re.IGNORECASE),
+    re.compile(r"^Invalid .*", re.IGNORECASE),
+    re.compile(r"^Not a valid .*", re.IGNORECASE),
+    re.compile(r"^This field is required\.?$", re.IGNORECASE),
+    re.compile(r"^This field may not be blank\.?$", re.IGNORECASE),
+    re.compile(r"^Ce champ est obligatoire\.?$", re.IGNORECASE),
+    re.compile(r"^Ce champ ne peut pas être vide\.?$", re.IGNORECASE),
+    re.compile(r"^A valid .* is required\.?$", re.IGNORECASE),
+    re.compile(r"^Une valeur .* valide est requise\.?$", re.IGNORECASE),
+    re.compile(r"^Enter a valid .*", re.IGNORECASE),
+    re.compile(r"^Saisissez .* valide", re.IGNORECASE),
+)
+
+DEFAULT_CODES = {"required", "blank", "invalid"}
+
+
+def _is_default_message(text: str) -> bool:
+    stripped = (text or "").strip()
+    if not stripped:
+        return True
+    return any(pattern.match(stripped) for pattern in DRF_DEFAULT_PATTERNS)
+
+
 def _flatten(errors, field: str | None = None) -> dict[str, list[str]]:
     flat: dict[str, list[str]] = {}
     if isinstance(errors, dict):
@@ -102,10 +131,13 @@ def _flatten(errors, field: str | None = None) -> dict[str, list[str]]:
             flat.update(_flatten(item, field))
     else:
         code = getattr(errors, "code", "invalid")
-        text = human_message(code, field, str(errors) if code not in {
-            "required", "blank", "invalid", "invalid_phone", "exists", "password_too_short",
-            "password_too_common", "terms_required", "invalid_code", "expired_code",
-        } else None)
+        text = str(errors)
+        if code in DEFAULT_CODES and _is_default_message(text):
+            # Erreur technique de DRF : on la remplace par une phrase lisible.
+            text = human_message(code, field)
+        else:
+            # Message métier rédigé par l'application : il est prioritaire.
+            text = human_message(code, field, text)
         flat.setdefault(field or "detail", []).append(text)
     return flat
 
