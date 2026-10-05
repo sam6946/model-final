@@ -227,6 +227,14 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.notifications.tasks.dispatch_pending",
         "schedule": 300.0,
     },
+    "projects-flag-at-risk": {
+        "task": "apps.projects.tasks.flag_at_risk_projects",
+        "schedule": 60 * 60 * 24,  # 1 fois par jour
+    },
+    "cleanup-unlinked-assets": {
+        "task": "common.tasks.cleanup_unlinked_assets",
+        "schedule": 60 * 60 * 24 * 7,  # hebdomadaire
+    },
 }
 
 # --- Authentification -------------------------------------------------------

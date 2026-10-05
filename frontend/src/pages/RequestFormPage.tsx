@@ -1107,7 +1107,7 @@ export default function RequestFormPage() {
               <div className="mt-4 border-t border-k-line pt-4">
                 {submitting ? <Spinner label="Envoi de votre demande…" /> : null}
                 <p className="text-[0.75rem] text-k-muted">
-                  Lundi au samedi · 7 h 30 – 18 h 30 (heure de Douala)
+                  Lundi au samedi · 7 h 30 – 18 h 30 (heure du Cameroun)
                 </p>
               </div>
             </div>

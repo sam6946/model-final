@@ -1,0 +1,143 @@
+# ---------------------------------------------------------------------------
+# KEMTA — socle commun (production locale et serveurs)
+#
+#   docker compose up -d                 → pile complète en production locale
+#   docker compose -f compose.yml -f compose.dev.yml up   → développement
+#
+# Les secrets ne sont jamais écrits ici : ils viennent du fichier .env
+# (voir .env.example), lu par Django via python-dotenv.
+# ---------------------------------------------------------------------------
+name: kemta
+
+x-backend-env: &backend-env
+  DJANGO_SETTINGS_MODULE: config.settings.prod
+  DATABASE_URL: postgresql://${POSTGRES_USER:-kemta}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis}@db:5432/${POSTGRES_DB:-kemta}
+  REDIS_URL: redis://redis:6379/0
+  CELERY_BROKER_URL: redis://redis:6379/1
+  CELERY_RESULT_BACKEND: redis://redis:6379/2
+  SECRET_KEY: ${SECRET_KEY:?SECRET_KEY requis}
+  ALLOWED_HOSTS: ${ALLOWED_HOSTS:-kemta.cm,www.kemta.cm,api.kemta.cm}
+  CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-https://kemta.cm,https://www.kemta.cm}
+  CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://kemta.cm,https://www.kemta.cm}
+  SMS_PROVIDER: ${SMS_PROVIDER:-console}
+  SMS_API_KEY: ${SMS_API_KEY:-}
+  SMS_API_SECRET: ${SMS_API_SECRET:-}
+  SMS_SENDER_ID: ${SMS_SENDER_ID:-KEMTA}
+  PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-manual}
+  PAYMENT_API_KEY: ${PAYMENT_API_KEY:-}
+  PAYMENT_API_SECRET: ${PAYMENT_API_SECRET:-}
+  PAYMENT_WEBHOOK_SECRET: ${PAYMENT_WEBHOOK_SECRET:-}
+  OBJECT_STORAGE_BUCKET: ${OBJECT_STORAGE_BUCKET:-}
+  OBJECT_STORAGE_ENDPOINT: ${OBJECT_STORAGE_ENDPOINT:-}
+  OBJECT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY:-}
+  OBJECT_STORAGE_SECRET_KEY: ${OBJECT_STORAGE_SECRET_KEY:-}
+  OBJECT_STORAGE_PUBLIC_BASE_URL: ${OBJECT_STORAGE_PUBLIC_BASE_URL:-}
+  EMAIL_HOST: ${EMAIL_HOST:-}
+  EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+  EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+  LOG_JSON: ${LOG_JSON:-true}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+x-backend-service: &backend-service
+  build:
+    context: .
+    dockerfile: Dockerfile.backend
+  image: kemta/backend:${KEMTA_TAG:-latest}
+  env_file:
+    - .env
+  environment: *backend-env
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-kemta}
+      POSTGRES_USER: ${POSTGRES_USER:-kemta}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kemta} -d ${POSTGRES_DB:-kemta}"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    restart: unless-stopped
+
+  backend:
+    <<: *backend-service
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py seed_kemta &&
+             gunicorn config.wsgi:application
+               --bind 0.0.0.0:8000
+               --workers ${GUNICORN_WORKERS:-3}
+               --threads ${GUNICORN_THREADS:-2}
+               --timeout ${GUNICORN_TIMEOUT:-60}
+               --access-logfile - --error-logfile -"
+    volumes:
+      - media_data:/app/media
+      - static_data:/app/staticfiles
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 4
+
+  worker:
+    <<: *backend-service
+    command: ["celery", "-A", "config", "worker", "-l", "info", "--concurrency", "${CELERY_CONCURRENCY:-2}"]
+    volumes:
+      - media_data:/app/media
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d celery@$$HOSTNAME || exit 1"]
+      interval: 60s
+      timeout: 15s
+      start_period: 40s
+      retries: 3
+
+  beat:
+    <<: *backend-service
+    command: ["celery", "-A", "config", "beat", "-l", "info", "--schedule", "/tmp/celerybeat-schedule"]
+    volumes:
+      - media_data:/app/media
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        VITE_PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://kemta.cm}
+    image: kemta/frontend:${KEMTA_TAG:-latest}
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_data:
+  static_data:

@@ -176,32 +176,35 @@ def _notify_client_validated(evidence: Evidence) -> None:
 
 
 def sync_offline_batch(*, items: list[dict], actor) -> dict:
-    """Traite un lot de preuves synchronisées depuis la PWA terrain."""
-    created, duplicates, failed = [], 0, []
-    for item in items:
-        try:
-            evidence = create_evidence(data=dict(item), actor=actor)
-            if evidence.created_at and evidence.captured_at and evidence.pk:
-                created.append(evidence)
-        except Exception as exc:  # pragma: no cover - robustesse terrain
-            logger.warning("offline_sync_item_failed", extra={"error": str(exc)})
-            failed.append({"client_uuid": str(item.get("client_uuid")), "error": str(exc)[:140]})
+    """Traite un lot de preuves synchronisées depuis la PWA terrain.
 
-    # On distingue les créations réelles des rejeux (mêmes client_uuid).
-    unique_created = []
-    seen = set()
-    for evidence in created:
-        if evidence.pk in seen:
-            duplicates += 1
-            continue
-        seen.add(evidence.pk)
-        unique_created.append(evidence)
+    Idempotent : le terrain peut rejouer le même lot (réseau coupé, batterie
+    faible, double appui sur « Synchroniser ») sans jamais créer de doublon.
+    Le ``client_uuid`` généré sur l'appareil fait office de clé d'unicité.
+    """
+    created, replayed, failed = [], 0, []
+    for item in items:
+        data = dict(item)
+        client_uuid = data.get("client_uuid")
+        try:
+            if client_uuid and Evidence.objects.filter(client_uuid=client_uuid).exists():
+                replayed += 1
+                continue
+            evidence = create_evidence(data=data, actor=actor)
+            created.append(evidence)
+        except Exception as exc:
+            logger.warning(
+                "offline_sync_item_failed",
+                extra={"error": str(exc), "client_uuid": str(client_uuid or "")},
+            )
+            failed.append({"client_uuid": str(client_uuid or ""), "error": str(exc)[:140]})
 
     return {
-        "created": len(unique_created),
-        "replayed": len(items) - len(unique_created) - len(failed),
+        "created": len(created),
+        "replayed": replayed,
         "failed": failed,
-        "pending_validation": Evidence.objects.filter(
-            pk__in=[item.pk for item in unique_created], status=EvidenceStatus.PENDING
-        ).count(),
+        "pending_validation": sum(
+            1 for evidence in created if evidence.status == EvidenceStatus.PENDING
+        ),
+        "references": [str(evidence.client_uuid) for evidence in created],
     }

@@ -1,57 +1,76 @@
-import { ArrowRight, PhoneCall } from 'lucide-react';
+import { ArrowRight, CalendarClock, Phone } from 'lucide-react';
 
+import { Section } from '@/components/layout/Section';
 import { ButtonLink } from '@/components/ui/Button';
 import { Media } from '@/components/ui/Media';
+import { usePublicContent } from '@/lib/hooks';
+import { useReveal } from '@/hooks/useReveal';
 
 /**
- * Appel à l'action final : une seule décision à prendre, deux chemins clairs
- * (déposer une demande ou parler à un conseiller), sans urgence artificielle.
+ * Appel à l'action final.
+ * Le numéro de téléphone reste celui du backend (source unique de vérité) :
+ * changer la ligne support ne demande aucun redéploiement du frontend.
  */
 export function FinalCta() {
+  const ref = useReveal<HTMLDivElement>();
+  const { data } = usePublicContent();
+  const supportPhone = data?.trust_stats?.find((stat) => stat.icon === 'phone')?.hint;
+
   return (
-    <section className="border-t border-k-line bg-white">
-      <div className="k-container grid gap-10 py-16 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-16 lg:py-20">
+    <Section id="demarrer" tone="blue" className="!py-16 sm:!py-20">
+      <div ref={ref} data-reveal className="grid gap-12 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-16">
         <div>
-          <span className="k-eyebrow">
-            <span className="h-px w-8 bg-k-green" aria-hidden />
-            Prochaine étape
-          </span>
-          <h2 className="mt-5 max-w-[22ch] text-balance">
-            Racontez-nous votre projet, nous nous occupons du reste.
+          <h2 className="text-[1.875rem] text-white sm:text-[2.375rem]">
+            Décrivez votre projet aujourd&apos;hui, suivez-le dès demain.
           </h2>
-          <p className="k-lead mt-5">
-            Décrivez votre besoin en 4 étapes. Un chargé de suivi KEMTA vous rappelle sous 48 heures ouvrées
-            avec une première analyse et une estimation de budget — sans engagement.
+          <p className="mt-4 max-w-[54ch] text-[1.0625rem] leading-relaxed text-white/75">
+            Le formulaire prend six minutes. Un conseiller KEMTA vous rappelle sous 48 heures ouvrées pour qualifier le
+            besoin, vérifier le terrain et vous annoncer un budget réaliste. Vous restez libre de refuser à tout
+            moment.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <ButtonLink to="/demande" size="lg" iconRight={<ArrowRight className="size-4" aria-hidden />}>
+            <ButtonLink to="/demande" variant="secondary" size="lg" iconRight={<ArrowRight className="size-4" aria-hidden />}>
               Démarrer ma demande
             </ButtonLink>
             <a
-              href="tel:+237600000000"
-              className="inline-flex h-13 items-center justify-center gap-2 rounded-k border border-k-line px-6 text-base font-medium text-k-ink transition-colors hover:border-k-blue-line hover:bg-k-mist"
+              href={supportPhone ? `tel:${supportPhone.replace(/\s/g, '')}` : '/contact'}
+              className="inline-flex items-center gap-2 text-[0.9375rem] font-medium text-white/85 transition-colors hover:text-white"
             >
-              <PhoneCall className="size-4 text-k-green" aria-hidden />
-              +237 600 000 000
+              <Phone className="size-4" aria-hidden />
+              {supportPhone ? `Appeler le ${supportPhone}` : 'Parler à un conseiller'}
             </a>
           </div>
 
-          <ul className="mt-8 grid gap-3 text-[0.875rem] text-k-muted sm:grid-cols-3">
-            <li>Réponse sous 48 h ouvrées</li>
-            <li>Devis écrit avant tout engagement</li>
-            <li>Vos données ne sont jamais revendues</li>
-          </ul>
+          <p className="mt-4 flex items-center gap-2 text-[0.8125rem] text-white/60">
+            <CalendarClock className="size-3.5" aria-hidden />
+            Réponse d&apos;un conseiller sous 48 h ouvrées · devis sans engagement
+          </p>
         </div>
 
-        <Media
-          name="villa-livree"
-          alt="Villa moderne livrée par une entreprise du réseau KEMTA, Cameroun"
-          ratio="4 / 3"
-          sizes="(min-width: 1024px) 42vw, 100vw"
-          className="rounded-k-xl"
-        />
+        <div className="relative">
+          <Media
+            name="villa-livree"
+            alt="Villa moderne livrée par KEMTA à Douala, façade claire et toiture anthracite"
+            ratio="4 / 3"
+            sizes="(min-width: 1024px) 46vw, 100vw"
+          />
+          <div className="mt-4 grid grid-cols-3 gap-4 text-white">
+            <div>
+              <p className="font-display text-[1.375rem] font-bold">48 h</p>
+              <p className="mt-1 text-[0.75rem] text-white/70">pour être rappelé</p>
+            </div>
+            <div>
+              <p className="font-display text-[1.375rem] font-bold">0 FCFA</p>
+              <p className="mt-1 text-[0.75rem] text-white/70">avant le devis</p>
+            </div>
+            <div>
+              <p className="font-display text-[1.375rem] font-bold">100 %</p>
+              <p className="mt-1 text-[0.75rem] text-white/70">des dépenses justifiées</p>
+            </div>
+          </div>
+        </div>
       </div>
-    </section>
+    </Section>
   );
 }

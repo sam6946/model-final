@@ -426,7 +426,7 @@ CONFIGURATION = [
     ("support_email", "contact@kemta.cm", "Adresse e-mail du support", True),
     ("whatsapp_number", "+237 6 99 00 00 00", "Numéro WhatsApp Business", True),
     ("support_hours", "Lun–Ven 7h30–18h, Sam 8h–13h", "Horaires du support", True),
-    ("head_office", "Bonanjo, Douala — Cameroun", "Adresse du siège", True),
+    ("head_office", "Bafoussam, quartier Administratif — Cameroun", "Adresse du siège", True),
     ("currency", "XAF", "Devise d'affichage", True),
     ("min_payment_xaf", 5000, "Montant minimum d'un paiement en ligne", True),
 ]

@@ -22,3 +22,15 @@ createRoot(container).render(
     </QueryClientProvider>
   </StrictMode>,
 );
+
+/* Application installable (PWA) : équipes terrain et clients réguliers.
+   Enregistré uniquement en production — le serveur de développement sert le
+   service worker depuis la racine du projet Vite. */
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      // Un échec d'enregistrement ne doit jamais bloquer l'application :
+      // le suivi de chantier reste pleinement utilisable en ligne.
+    });
+  });
+}

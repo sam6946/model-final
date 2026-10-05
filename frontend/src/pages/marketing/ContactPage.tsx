@@ -104,7 +104,7 @@ export default function ContactPage() {
   return (
     <>
       <Seo
-        title="Contacter KEMTA — conseiller Douala, Yaoundé et diaspora"
+        title="Contacter KEMTA — conseiller Bafoussam, Douala, Yaoundé et diaspora"
         description="Parlez à un conseiller KEMTA : téléphone, WhatsApp, e-mail ou formulaire. Réponse sous 48 heures ouvrées pour votre projet de construction, de suivi de chantier ou d'entretien."
         path="/contact"
         jsonLd={breadcrumbSchema([
@@ -187,9 +187,9 @@ export default function ContactPage() {
                 </span>
                 <p className="mt-4 font-display text-[1rem] font-semibold text-k-ink">Bureaux</p>
                 <p className="mt-2 text-[0.875rem] leading-relaxed text-k-muted">
-                  Douala — Rue Njo-Njo, Bonanjo (siège, sur rendez-vous)
+                  Bafoussam — Quartier Administratif (siège, sur rendez-vous)
                   <br />
-                  Yaoundé — Bastos, immeuble KEMTA (point d&apos;accueil, sur rendez-vous)
+                  Douala &amp; Yaoundé — permanences d&apos;accueil, sur rendez-vous
                 </p>
                 <p className="mt-3 inline-flex items-center gap-1.5 text-[0.8125rem] text-k-muted">
                   <Clock className="size-3.5 text-k-green" aria-hidden />

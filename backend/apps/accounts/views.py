@@ -107,8 +107,9 @@ class OTPRequestView(APIView):
             "resend_in": settings.OTP_RESEND_COOLDOWN_SECONDS,
             "attempts_allowed": otp.max_attempts,
         }
-        if settings.OTP_DEV_ECHO:
-            # Uniquement en développement : évite de dépendre d'une passerelle SMS.
+        if otp_service.dev_echo_enabled():
+            # Uniquement en développement (DEBUG + OTP_DEV_ECHO) : évite de
+            # dépendre d'une passerelle SMS. Jamais exposé en production.
             payload["dev_mode"] = True
             payload["dev_code"] = otp_service.dev_echo_code(otp.phone, otp.purpose)
         return Response(payload)
@@ -253,7 +254,7 @@ class LoginOTPRequestView(APIView):
             "resend_in": settings.OTP_RESEND_COOLDOWN_SECONDS,
             "attempts_allowed": otp.max_attempts,
         }
-        if settings.OTP_DEV_ECHO:
+        if otp_service.dev_echo_enabled():
             response["dev_mode"] = True
             response["dev_code"] = otp_service.dev_echo_code(otp.phone, otp.purpose)
         return Response(response)

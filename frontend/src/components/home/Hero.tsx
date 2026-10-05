@@ -1,142 +1,138 @@
-import { ArrowRight, Camera, Check, MapPin, ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Check, MapPin, ShieldCheck, TriangleAlert, Wallet } from 'lucide-react';
 
-import { HERO } from '@/lib/content';
 import { ButtonLink } from '@/components/ui/Button';
-import { InterfaceFrame } from '@/components/ui/Media';
 import { Badge } from '@/components/ui/Badge';
+import { InterfaceFrame } from '@/components/ui/Media';
+import { Section } from '@/components/layout/Section';
+import { HERO } from '@/lib/content';
+import { useReveal } from '@/hooks/useReveal';
 
-/** Aperçu de l'espace client : montre le produit plutôt que de le décrire. */
-function SitePreview() {
-  const phases = [
-    { name: 'Fondations & soubassement', progress: 100, done: true },
-    { name: 'Élévation des murs', progress: 72, done: false },
-    { name: 'Charpente & toiture', progress: 15, done: false },
-  ];
-
+/** Aperçu produit : l'espace de suivi tel que le client le reçoit. */
+function TrackingPreview() {
   return (
     <InterfaceFrame
-      title="Villa Bonapriso — R+1"
-      subtitle="Suivi KEMTA · mise à jour il y a 2 jours"
-      className="w-full"
+      title="Villa Bonapriso — Aïcha Mbarga"
+      subtitle="KEMTA-PRJ-2026-00018 · Bonapriso, Douala"
     >
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Badge tone="green" size="sm">
-            <ShieldCheck className="size-3" aria-hidden />
-            Preuve validée
-          </Badge>
-          <span className="text-[0.6875rem] text-k-muted">Avancement global</span>
-          <span className="font-display text-lg font-bold text-k-ink">62 %</span>
-        </div>
-
-        <div className="h-2 overflow-hidden rounded-full bg-k-line">
-          <div className="h-full w-[62%] rounded-full bg-k-green" />
-        </div>
-
-        <ul className="space-y-2.5">
-          {phases.map((phase) => (
-            <li key={phase.name} className="flex items-center gap-3">
-              <span
-                className={`flex size-5 shrink-0 items-center justify-center rounded-full text-[0.625rem] font-semibold ${
-                  phase.done ? 'bg-k-green text-white' : 'bg-k-blue-soft text-k-blue'
-                }`}
-                aria-hidden
-              >
-                {phase.done ? <Check className="size-3" /> : `${phase.progress}`}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[0.8125rem] font-medium text-k-ink">{phase.name}</p>
-                <div className="mt-1 h-1 overflow-hidden rounded-full bg-k-line">
-                  <div
-                    className={`h-full rounded-full ${phase.done ? 'bg-k-green' : 'bg-k-blue'}`}
-                    style={{ width: `${phase.progress}%` }}
-                  />
-                </div>
-              </div>
-              <span className="w-9 shrink-0 text-right text-[0.6875rem] text-k-muted">{phase.progress} %</span>
-            </li>
-          ))}
-        </ul>
-
-        <div className="grid grid-cols-2 gap-2 border-t border-k-line pt-3.5">
-          <div className="rounded-k bg-k-mist px-3 py-2">
-            <p className="text-[0.625rem] uppercase tracking-wide text-k-muted">Budget engagé</p>
-            <p className="font-display text-[0.9375rem] font-semibold text-k-ink">23 400 000 FCFA</p>
-          </div>
-          <div className="rounded-k bg-k-mist px-3 py-2">
-            <p className="text-[0.625rem] uppercase tracking-wide text-k-muted">Prochaine visite</p>
-            <p className="font-display text-[0.9375rem] font-semibold text-k-ink">Vendredi 09 h</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5 rounded-k border border-k-line bg-white px-3 py-2.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-k-sm bg-k-green-pale text-k-green-dark" aria-hidden>
-            <Camera className="size-4" />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="flex size-10 items-center justify-center rounded-k bg-k-green-pale font-display text-[0.8125rem] font-bold text-k-green-dark" aria-hidden>
+            62%
           </span>
-          <div className="min-w-0">
-            <p className="truncate text-[0.8125rem] font-medium text-k-ink">
-              4 photos · Coulage de la dalle haute
-            </p>
-            <p className="flex items-center gap-1 text-[0.6875rem] text-k-muted">
-              <MapPin className="size-3" aria-hidden />
-              Bonapriso, Douala · technicien A. Fotso
-            </p>
+          <div>
+            <p className="text-[0.8125rem] font-medium text-k-ink">Élévation et structure</p>
+            <p className="text-[0.75rem] text-k-muted">Phase 4 sur 10 · dans les délais</p>
           </div>
         </div>
+        <Badge tone="green" size="sm">
+          Suivi actif
+        </Badge>
+      </div>
+
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-k-line">
+        <div className="h-full w-[62%] rounded-full bg-k-green" />
+      </div>
+
+      <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-k-line pt-4">
+        <div>
+          <dt className="text-[0.6875rem] uppercase tracking-wide text-k-muted">Budget</dt>
+          <dd className="mt-0.5 text-[0.8125rem] font-semibold text-k-ink">38 000 000 FCFA</dd>
+        </div>
+        <div>
+          <dt className="text-[0.6875rem] uppercase tracking-wide text-k-muted">Consommé</dt>
+          <dd className="mt-0.5 text-[0.8125rem] font-semibold text-k-ink">54 %</dd>
+        </div>
+        <div>
+          <dt className="text-[0.6875rem] uppercase tracking-wide text-k-muted">Preuves</dt>
+          <dd className="mt-0.5 text-[0.8125rem] font-semibold text-k-ink">18 photos</dd>
+        </div>
+      </dl>
+
+      <div className="mt-4 space-y-2.5 rounded-k bg-k-mist p-3.5">
+        <p className="flex items-start gap-2 text-[0.8125rem] text-k-ink">
+          <ShieldCheck className="mt-0.5 size-4 shrink-0 text-k-green" aria-hidden />
+          <span>
+            <span className="font-medium">Preuve validée</span> — Ferraillage poteaux P4, photo horodatée du 14/03 à
+            09:12.
+          </span>
+        </p>
+        <p className="flex items-start gap-2 text-[0.8125rem] text-k-ink">
+          <Wallet className="mt-0.5 size-4 shrink-0 text-k-blue" aria-hidden />
+          <span>
+            <span className="font-medium">Décaissement bloqué</span> — en attente de la facture ciment du lot 3.
+          </span>
+        </p>
+        <p className="flex items-start gap-2 text-[0.8125rem] text-k-ink">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-k-amber" aria-hidden />
+          <span>
+            <span className="font-medium">Point d&apos;attention</span> — livraison du sable retardée de 2 jours,
+            planning ajusté.
+          </span>
+        </p>
       </div>
     </InterfaceFrame>
   );
 }
 
 export function Hero() {
+  const ref = useReveal<HTMLDivElement>();
+
   return (
-    <section className="relative overflow-hidden border-b border-k-line bg-white">
-      {/* Trame technique discrète, aucun dégradé décoratif. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[linear-gradient(to_right,rgba(6,59,92,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(6,59,92,0.05)_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:linear-gradient(to_bottom,black,transparent)]"
-      />
+    <Section className="!pb-14 !pt-10 sm:!pt-14 lg:!pb-20 lg:!pt-16" containerClassName="grid gap-12 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-16">
+      <div ref={ref} data-reveal className="flex flex-col items-start">
+        <Badge tone="blue">
+          <MapPin className="size-3.5" aria-hidden />
+          {HERO.eyebrow}
+        </Badge>
 
-      <div className="k-container relative grid gap-12 py-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16 lg:py-24">
-        <div className="flex flex-col justify-center gap-7">
-          <p className="k-eyebrow">
-            <span className="h-px w-8 bg-k-green" aria-hidden />
-            {HERO.eyebrow}
-          </p>
+        <h1 className="mt-5 text-[2.125rem] leading-[1.08] sm:text-[2.75rem] lg:text-[3.25rem]">{HERO.title}</h1>
 
-          <h1 className="max-w-[20ch]">{HERO.title}</h1>
+        <p className="mt-5 max-w-[58ch] text-[1.0625rem] leading-relaxed text-k-muted sm:text-[1.125rem]">
+          {HERO.lead}
+        </p>
 
-          <p className="k-lead">{HERO.lead}</p>
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <ButtonLink
-              to="/demande"
-              size="lg"
-              iconRight={<ArrowRight className="size-4" aria-hidden />}
-            >
-              {HERO.primaryCta}
-            </ButtonLink>
-            <ButtonLink to="/comment-ca-marche" variant="secondary" size="lg">
-              {HERO.secondaryCta}
-            </ButtonLink>
-          </div>
-
-          <p className="text-[0.8125rem] text-k-muted">{HERO.primaryHint}</p>
-
-          <ul className="flex flex-col gap-2.5 border-t border-k-line pt-6 sm:flex-row sm:flex-wrap sm:gap-x-6">
-            {HERO.guarantees.map((item) => (
-              <li key={item} className="flex items-center gap-2 text-[0.8125rem] text-k-ink/80">
-                <Check className="size-3.5 shrink-0 text-k-green" aria-hidden />
-                {item}
-              </li>
-            ))}
-          </ul>
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <ButtonLink to="/demande" size="lg" iconRight={<ArrowRight className="size-4" aria-hidden />}>
+            {HERO.primaryCta}
+          </ButtonLink>
+          <ButtonLink to="/comment-ca-marche" variant="secondary" size="lg">
+            {HERO.secondaryCta}
+          </ButtonLink>
         </div>
 
-        <div className="relative flex items-center lg:justify-end">
-          <SitePreview />
+        <p className="mt-3 text-[0.8125rem] text-k-muted">{HERO.primaryHint}</p>
+
+        <ul className="mt-8 grid gap-2.5 sm:grid-cols-1">
+          {HERO.guarantees.map((item) => (
+            <li key={item} className="flex items-start gap-2.5 text-[0.875rem] text-k-ink">
+              <Check className="mt-0.5 size-4 shrink-0 text-k-green" aria-hidden />
+              {item}
+            </li>
+          ))}
+        </ul>
+
+        <p className="mt-8 text-[0.8125rem] text-k-muted">
+          Déjà un projet chez KEMTA ?{' '}
+          <Link to="/connexion" className="font-medium text-k-blue hover:text-k-green-dark">
+            Accéder à mon espace
+          </Link>
+        </p>
+      </div>
+
+      <div data-reveal className="relative">
+        <TrackingPreview />
+        <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 px-1 text-[0.75rem] text-k-muted">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="size-1.5 rounded-full bg-k-green" aria-hidden />
+            Mise à jour il y a 2 h
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="size-1.5 rounded-full bg-k-blue" aria-hidden />
+            Chargé de suivi : Clarisse E.
+          </span>
         </div>
       </div>
-    </section>
+    </Section>
   );
 }

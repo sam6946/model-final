@@ -4,6 +4,13 @@ import tailwindcss from '@tailwindcss/vite';
 import { fileURLToPath } from 'node:url';
 
 /**
+ * Cible du proxy /api et /media.
+ * En local : Django sur 127.0.0.1:8000. Sous Docker Compose, le service backend
+ * est joignable via VITE_API_TARGET=http://backend:8000.
+ */
+const API_TARGET = process.env.VITE_API_TARGET ?? 'http://127.0.0.1:8000';
+
+/**
  * KEMTA – configuration Vite.
  * Le serveur de développement expose un proxy /api et /media vers Django
  * afin que le navigateur ne parle qu'à une seule origine (pas de CORS en dev,
@@ -23,8 +30,8 @@ export default defineConfig({
     // Autorise les hôtes de prévisualisation (proxy type *.e2b.app).
     allowedHosts: true,
     proxy: {
-      '/api': { target: 'http://127.0.0.1:8000', changeOrigin: false },
-      '/media': { target: 'http://127.0.0.1:8000', changeOrigin: false },
+      '/api': { target: API_TARGET, changeOrigin: false },
+      '/media': { target: API_TARGET, changeOrigin: false },
     },
   },
   preview: {
@@ -33,8 +40,8 @@ export default defineConfig({
     strictPort: true,
     allowedHosts: true,
     proxy: {
-      '/api': { target: 'http://127.0.0.1:8000', changeOrigin: false },
-      '/media': { target: 'http://127.0.0.1:8000', changeOrigin: false },
+      '/api': { target: API_TARGET, changeOrigin: false },
+      '/media': { target: API_TARGET, changeOrigin: false },
     },
   },
   build: {

@@ -23,7 +23,7 @@ const PRICING_FAQ = [
     id: 'prix-deplacement',
     question: 'Les frais de déplacement sont-ils inclus ?',
     answer:
-      "Les visites dans les villes couvertes (Douala, Yaoundé) sont incluses dans le tarif mensuel. Pour une localité éloignée, les frais réels de déplacement sont annoncés avant l'intervention.",
+      "Les visites dans les villes couvertes (Bafoussam, Douala, Yaoundé) sont incluses dans le tarif mensuel. Pour une localité éloignée, les frais réels de déplacement sont annoncés avant l'intervention.",
   },
   {
     id: 'prix-entreprise',
@@ -113,7 +113,7 @@ export default function PricingPage() {
           </table>
         </div>
         <p className="mt-4 text-[0.8125rem] text-k-muted">
-          Frais de mise en relation, contrôle technique et déplacements hors Douala / Yaoundé : indiqués dans le
+          Frais de mise en relation, contrôle technique et déplacements hors Bafoussam, Douala et Yaoundé : indiqués dans le
           devis avant démarrage.
         </p>
       </Section>

@@ -1,0 +1,113 @@
+# ---------------------------------------------------------------------------
+# KEMTA — surcharges de production
+#
+#   docker compose -f compose.yml -f compose.prod.yml up -d
+#
+# Ce que cette couche ajoute par rapport au socle :
+#   · aucune source montée, tout est figé dans les images ;
+#   · les ports des services internes (backend, base, Redis) ne sortent pas de
+#     l'hôte : seul Nginx est publié ;
+#   · journaux JSON bornés, redémarrage systématique, mémoire plafonnée ;
+#   · sauvegarde de la base planifiée (service `backup`).
+# ---------------------------------------------------------------------------
+services:
+  db:
+    ports: []
+    command:
+      - postgres
+      - -c
+      - max_connections=${POSTGRES_MAX_CONNECTIONS:-120}
+      - -c
+      - shared_buffers=${POSTGRES_SHARED_BUFFERS:-256MB}
+      - -c
+      - work_mem=${POSTGRES_WORK_MEM:-8MB}
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+    deploy:
+      resources:
+        limits:
+          memory: ${DB_MEMORY_LIMIT:-1g}
+
+  redis:
+    ports: []
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --maxmemory
+      - ${REDIS_MAXMEMORY:-384mb}
+      - --maxmemory-policy
+      - noeviction
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+    deploy:
+      resources:
+        limits:
+          memory: ${REDIS_MEMORY_LIMIT:-512m}
+
+  backend:
+    ports: []
+    environment:
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-3}
+      GUNICORN_THREADS: ${GUNICORN_THREADS:-2}
+      LOG_JSON: "true"
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      OTP_DEV_ECHO: "false"
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+    deploy:
+      resources:
+        limits:
+          memory: ${BACKEND_MEMORY_LIMIT:-1g}
+
+  worker:
+    environment:
+      LOG_JSON: "true"
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      OTP_DEV_ECHO: "false"
+    deploy:
+      replicas: ${CELERY_WORKERS:-1}
+      resources:
+        limits:
+          memory: ${WORKER_MEMORY_LIMIT:-768m}
+
+  beat:
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+  frontend:
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+    deploy:
+      resources:
+        limits:
+          memory: ${FRONTEND_MEMORY_LIMIT:-256m}
+
+  # Sauvegarde quotidienne de PostgreSQL dans ./backups (rétention 14 jours).
+  # Restauration : docker compose exec -T db psql -U kemta -d kemta < backups/kemta-AAAAMMJJ.sql
+  backup:
+    image: postgres:16-alpine
+    env_file:
+      - .env
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis}
+    volumes:
+      - ./backups:/backups
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      'while true; do
+         pg_dump -h db -U ${POSTGRES_USER:-kemta} -d ${POSTGRES_DB:-kemta} --clean --if-exists
+           | gzip > /backups/kemta-$$(date +%Y%m%d-%H%M).sql.gz;
+         find /backups -name "kemta-*.sql.gz" -mtime +${BACKUP_RETENTION_DAYS:-14} -delete;
+         sleep 86400;
+       done'
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped

@@ -169,14 +169,37 @@ def check_otp_request_quota(phone: str) -> tuple[bool, int]:
 
 
 def otp_cooldown_remaining(phone: str, purpose: str) -> int:
-    """Secondes restantes avant de pouvoir renvoyer un code."""
-    from django.conf import settings
+    """Secondes restantes avant de pouvoir renvoyer un code.
 
-    key = f"kemta:otp:cooldown:{phone}:{purpose}"
-    return max(0, int(cache.ttl(key) or 0)) if cache.get(key) else 0
+    L'échéance est stockée explicitement dans la valeur (et non déduite du TTL) :
+    `cache.ttl()` n'existe ni dans le backend Redis de Django ni dans le cache
+    mémoire utilisé en développement ou en test. Le comportement reste identique
+    quel que soit le cache configuré.
+    """
+    key = _cooldown_key(phone, purpose)
+    deadline = cache.get(key)
+    if not deadline:
+        return 0
+    try:
+        remaining = int(float(deadline) - time.time())
+    except (TypeError, ValueError):
+        # Valeur écrite par une version antérieure du code : on considère la
+        # période de refroidissement comme encore active.
+        return get_otp_cooldown_seconds()
+    return max(0, remaining)
 
 
 def set_otp_cooldown(phone: str, purpose: str) -> None:
+    """Arme le délai de refroidissement après un envoi de code."""
+    seconds = get_otp_cooldown_seconds()
+    cache.set(_cooldown_key(phone, purpose), time.time() + seconds, seconds)
+
+
+def _cooldown_key(phone: str, purpose: str) -> str:
+    return f"kemta:otp:cooldown:{phone}:{purpose}"
+
+
+def get_otp_cooldown_seconds() -> int:
     from django.conf import settings
 
-    cache.set(f"kemta:otp:cooldown:{phone}:{purpose}", 1, settings.OTP_RESEND_COOLDOWN_SECONDS)
+    return int(getattr(settings, "OTP_RESEND_COOLDOWN_SECONDS", 45))

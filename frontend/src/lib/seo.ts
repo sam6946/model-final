@@ -23,14 +23,15 @@ export const ORGANIZATION_SCHEMA = {
   email: 'contact@kemta.cm',
   areaServed: [
     { '@type': 'Country', name: 'Cameroun' },
+    { '@type': 'City', name: 'Bafoussam' },
     { '@type': 'City', name: 'Douala' },
     { '@type': 'City', name: 'Yaoundé' },
   ],
   address: {
     '@type': 'PostalAddress',
-    streetAddress: 'Rue Njo-Njo, Bonanjo',
-    addressLocality: 'Douala',
-    addressRegion: 'Littoral',
+    streetAddress: 'Quartier Administratif',
+    addressLocality: 'Bafoussam',
+    addressRegion: 'Ouest',
     addressCountry: 'CM',
   },
   openingHours: 'Mo-Sa 07:30-18:30',

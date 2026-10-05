@@ -3,10 +3,67 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- Référencement et partage -->
     <title>KEMTA — Suivi de chantier et gestion immobilière au Cameroun</title>
+    <meta
+      name="description"
+      content="Confiez votre projet à KEMTA : suivi de chantier à distance, contrôle du budget, preuves photo horodatées, entreprises BTP vérifiées et entretien de propriété au Cameroun."
+    />
+    <meta name="theme-color" content="#063B5C" />
+    <meta name="color-scheme" content="light" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="author" content="KEMTA" />
+    <meta name="geo.region" content="CM-OU" />
+    <meta name="geo.placename" content="Bafoussam" />
+    <link rel="canonical" href="https://kemta.cm/" />
+
+    <!-- Partage social (valeurs par défaut, affinées page par page par <Seo />) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="KEMTA" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:title" content="KEMTA — Suivi de chantier et gestion immobilière au Cameroun" />
+    <meta
+      property="og:description"
+      content="Suivez votre chantier à distance : preuves photo horodatées, budget contrôlé, entreprises BTP vérifiées. Bafoussam, Douala, Yaoundé et diaspora."
+    />
+    <meta property="og:url" content="https://kemta.cm/" />
+    <meta property="og:image" content="https://kemta.cm/images/og-kemta.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Chargé de suivi KEMTA sur un chantier à Douala" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="KEMTA — Suivi de chantier au Cameroun" />
+    <meta
+      name="twitter:description"
+      content="Preuves photo horodatées, budget contrôlé poste par poste, entreprises BTP vérifiées."
+    />
+    <meta name="twitter:image" content="https://kemta.cm/images/og-kemta.jpg" />
+
+    <!-- Application installable (équipes terrain et clients réguliers) -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="KEMTA" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- Le contenu critique est chargé en priorité, le reste est différé. -->
+    <link rel="preload" as="image" href="/images/hero-suivi-chantier-960.webp" type="image/webp" />
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <div style="max-width: 40rem; margin: 4rem auto; padding: 0 1.5rem; font-family: system-ui, sans-serif">
+        <h1 style="color: #063b5c">KEMTA</h1>
+        <p style="color: #64748b; line-height: 1.6">
+          Le suivi de chantier KEMTA nécessite JavaScript pour afficher vos projets, vos preuves photo et votre budget
+          en temps réel. Activez JavaScript, ou appelez directement notre équipe au
+          <a href="tel:+237600000000" style="color: #063b5c">+237 6 00 00 00 00</a>.
+        </p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

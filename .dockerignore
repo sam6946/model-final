@@ -1,0 +1,25 @@
+# Contexte de construction Docker : tout ce qui ne doit pas entrer dans l'image.
+.git
+.github
+.gitignore
+.env
+.env.*
+!.env.example
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.venv
+**/venv
+backend/db.sqlite3
+backend/media
+backend/staticfiles
+frontend/node_modules
+frontend/dist
+frontend/.vite
+frontend/*.tsbuildinfo
+node_modules
+backups
+docs
+*.log

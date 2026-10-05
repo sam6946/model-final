@@ -825,6 +825,21 @@ def _admin_next_actions(request_stats, company_stats, evidence_stats, invoice_st
     return actions[:5]
 
 
+def invalidate_dashboard(*users) -> None:
+    """Invalide le cache du tableau de bord des utilisateurs concernés.
+
+    Sans cela, un client verrait un compteur figé jusqu'à deux minutes après
+    l'ajout d'un chantier, d'une preuve ou d'une notification.
+    """
+    from django.core.cache import cache
+
+    today = timezone.localdate()
+    for user in users:
+        if user is None or not getattr(user, "pk", None):
+            continue
+        cache.delete(make_key("dashboard_client", user.pk, today))
+
+
 def cached_dashboard(*, user, namespace: str, builder) -> tuple[dict, bool]:
     """Met en cache les tableaux de bord 2 minutes (données semi-dynamiques).
 

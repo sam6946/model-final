@@ -136,7 +136,7 @@ const DETAILS: Record<string, ServiceDetail> = {
       {
         question: "Intervenez-vous partout au Cameroun ?",
         answer:
-          "Nous couvrons Douala, Yaoundé et les principales villes. Pour une localité éloignée, nous indiquons les frais de déplacement avant l'intervention.",
+          "Nous couvrons Bafoussam, Douala, Yaoundé et les principales villes. Pour une localité éloignée, nous indiquons les frais de déplacement avant l'intervention.",
       },
     ],
   },

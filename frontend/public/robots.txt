@@ -1,0 +1,25 @@
+# ---------------------------------------------------------------------------
+# KEMTA — directives d'exploration
+# Les espaces connectés et l'API ne doivent jamais être indexés : ils exposent
+# des données de clients (projets, budgets, pièces administratives).
+# ---------------------------------------------------------------------------
+User-agent: *
+Allow: /
+Disallow: /espace
+Disallow: /espace/
+Disallow: /api/
+Disallow: /admin/
+Disallow: /connexion
+Disallow: /inscription
+Disallow: /mot-de-passe-oublie
+Disallow: /demande/confirmation/
+Disallow: /*?utm_
+
+# Robots d'aperçu social : accès libre aux visuels de partage.
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+Sitemap: https://kemta.cm/sitemap.xml

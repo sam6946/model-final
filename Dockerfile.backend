@@ -1,0 +1,61 @@
+# ---------------------------------------------------------------------------
+# KEMTA — image backend (Django + DRF + Celery)
+#
+# Multi-étapes : les dépendances de compilation restent dans l'étape `builder`,
+# l'image finale ne contient que l'environnement virtuel et le code applicatif.
+# L'image sert aussi bien l'API (gunicorn) que les workers Celery.
+# ---------------------------------------------------------------------------
+FROM python:3.12-slim AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential libpq-dev libjpeg62-turbo-dev zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY requirements.txt ./
+RUN python -m venv /opt/venv \
+    && /opt/venv/bin/pip install --upgrade pip setuptools wheel \
+    && /opt/venv/bin/pip install -r requirements.txt
+
+
+FROM python:3.12-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/opt/venv/bin:$PATH" \
+    DJANGO_SETTINGS_MODULE=config.settings.prod \
+    PORT=8000
+
+# curl : sonde de santé du conteneur. libpq/libjpeg : pilotes d'exécution.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libpq5 libjpeg62-turbo zlib1g curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --shell /bin/bash kemta
+
+COPY --from=builder /opt/venv /opt/venv
+
+WORKDIR /app
+COPY --chown=kemta:kemta . .
+
+# Les statiques sont collectées à la construction pour être servies par
+# WhiteNoise (API) et par Nginx (frontend) sans accès disque partagé.
+# collectstatic n'a besoin d'aucune base ni d'aucun Redis : on utilise les
+# réglages de développement uniquement pour cette étape de construction.
+RUN mkdir -p /app/staticfiles /app/media \
+    && DJANGO_SETTINGS_MODULE=config.settings.dev SECRET_KEY=build-only \
+       python manage.py collectstatic --noinput \
+    && chown -R kemta:kemta /app/staticfiles /app/media
+
+USER kemta
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=25s --retries=3 \
+    CMD curl -fsS "http://127.0.0.1:${PORT}/health/" || exit 1
+
+# Valeurs par défaut surchargées par compose (workers, beat, migrations).
+CMD ["sh", "-c", "gunicorn config.wsgi:application --bind 0.0.0.0:${PORT} --workers ${GUNICORN_WORKERS:-3} --threads ${GUNICORN_THREADS:-2} --timeout ${GUNICORN_TIMEOUT:-60} --access-logfile - --error-logfile -"]
