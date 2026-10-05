@@ -1,0 +1,84 @@
+"""Catalogue de permissions KEMTA (source unique de vérité).
+
+Le frontend s'en sert pour masquer des actions, le backend pour les vérifier.
+Toute action sensible DOIT être protégée par un de ces codes côté serveur.
+"""
+from __future__ import annotations
+
+
+class Perm:
+    # Projets / chantiers
+    CREATE_PROJECT = "CREATE_PROJECT"
+    EDIT_PROJECT = "EDIT_PROJECT"
+    VIEW_PROJECT = "VIEW_PROJECT"
+    MANAGE_PROJECT = "MANAGE_PROJECT"
+    MANAGE_SCHEDULE = "MANAGE_SCHEDULE"
+    MANAGE_MEMBERS = "MANAGE_MEMBERS"
+
+    # Preuves terrain
+    CAPTURE_EVIDENCE = "CAPTURE_EVIDENCE"
+    UPLOAD_EVIDENCE = "UPLOAD_EVIDENCE"
+    VALIDATE_EVIDENCE = "VALIDATE_EVIDENCE"
+    VIEW_EVIDENCE = "VIEW_EVIDENCE"
+
+    # Tâches / construction
+    UPDATE_TASK = "UPDATE_TASK"
+    VIEW_TASK = "VIEW_TASK"
+    MANAGE_PHASE = "MANAGE_PHASE"
+
+    # Finances
+    MANAGE_FINANCE = "MANAGE_FINANCE"
+    VIEW_FINANCE = "VIEW_FINANCE"
+    MANAGE_BUDGET = "MANAGE_BUDGET"
+
+    # Rapports
+    CREATE_REPORT = "CREATE_REPORT"
+    VALIDATE_REPORT = "VALIDATE_REPORT"
+    VIEW_REPORT = "VIEW_REPORT"
+
+    # Propriétés / entretien
+    MANAGE_PROPERTY = "MANAGE_PROPERTY"
+    VIEW_PROPERTY = "VIEW_PROPERTY"
+    MANAGE_MAINTENANCE = "MANAGE_MAINTENANCE"
+    PERFORM_VISIT = "PERFORM_VISIT"
+
+    # Demandes de service
+    MANAGE_SERVICE_REQUEST = "MANAGE_SERVICE_REQUEST"
+    VIEW_SERVICE_REQUEST = "VIEW_SERVICE_REQUEST"
+    ASSIGN_SERVICE_REQUEST = "ASSIGN_SERVICE_REQUEST"
+
+    # Entreprises / catalogue BTP
+    MANAGE_COMPANY = "MANAGE_COMPANY"
+    MANAGE_CATALOG = "MANAGE_CATALOG"
+    VERIFY_COMPANY = "VERIFY_COMPANY"
+    VIEW_COMPANY = "VIEW_COMPANY"
+
+    # Opportunités / candidatures
+    CREATE_OPPORTUNITY = "CREATE_OPPORTUNITY"
+    MANAGE_OPPORTUNITY = "MANAGE_OPPORTUNITY"
+    APPLY_OPPORTUNITY = "APPLY_OPPORTUNITY"
+    REVIEW_APPLICATION = "REVIEW_APPLICATION"
+    VIEW_APPLICATION = "VIEW_APPLICATION"
+
+    # Abonnements / paiements
+    MANAGE_SUBSCRIPTION = "MANAGE_SUBSCRIPTION"
+    VIEW_SUBSCRIPTION = "VIEW_SUBSCRIPTION"
+    INITIATE_PAYMENT = "INITIATE_PAYMENT"
+    MANAGE_PAYMENT = "MANAGE_PAYMENT"
+    VIEW_FINANCE_REPORT = "VIEW_FINANCE_REPORT"
+
+    # Administration / plateforme
+    MANAGE_USERS = "MANAGE_USERS"
+    VIEW_USERS = "VIEW_USERS"
+    MANAGE_SETTINGS = "MANAGE_SETTINGS"
+    VIEW_ACTIVITY = "VIEW_ACTIVITY"
+    VIEW_AUTH_LOGS = "VIEW_AUTH_LOGS"
+    MANAGE_NOTIFICATIONS = "MANAGE_NOTIFICATIONS"
+    VIEW_STATISTICS = "VIEW_STATISTICS"
+
+
+ALL_PERMISSIONS: dict[str, str] = {
+    getattr(Perm, name): name.replace("_", " ").capitalize()
+    for name in dir(Perm)
+    if not name.startswith("_")
+}

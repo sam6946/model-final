@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KEMTA — API</title>
+  <style>
+    body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#F5F7F8;color:#17212B;margin:0;display:flex;min-height:100vh;align-items:center;justify-content:center}
+    .card{background:#fff;border:1px solid #E3E8EC;border-radius:12px;padding:32px;max-width:520px;margin:24px}
+    h1{color:#063B5C;font-size:22px;margin:0 0 8px}
+    p{color:#64748B;line-height:1.6;margin:8px 0}
+    code{background:#E8F7ED;color:#15803D;padding:2px 6px;border-radius:4px;font-size:13px}
+    ul{padding-left:18px;color:#64748B}
+    a{color:#20A04B}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>KEMTA — API opérationnelle</h1>
+    <p>Le service backend répond correctement. L'interface web n'est pas servie depuis ce processus.</p>
+    <ul>
+      <li>Santé : <code>/health/</code> et <code>/health/ready/</code></li>
+      <li>Documentation : <code>/api/docs/</code></li>
+      <li>Schéma OpenAPI : <code>/api/schema/</code></li>
+      <li>Administration : <code>/admin/</code></li>
+    </ul>
+    <p>Pour l'interface, lancez le frontend React (<code>npm run dev</code> dans <code>frontend/</code>) ou utilisez la stack Docker complète.</p>
+  </div>
+</body>
+</html>

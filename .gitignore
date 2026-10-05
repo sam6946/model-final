@@ -1,0 +1,52 @@
+# ---------------------------------------------------------------------------
+# KEMTA — fichiers exclus du dépôt
+# ---------------------------------------------------------------------------
+
+# Secrets : ne jamais versionner d'identifiants (SMS, paiement, JWT, base).
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python / Django
+__pycache__/
+*.py[cod]
+*.so
+.Python
+build/
+dist/
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Données locales d'exécution
+backend/db.sqlite3
+backend/db.sqlite3-journal
+backend/media/
+backend/staticfiles/
+*.log
+celerybeat-schedule*
+celerybeat.pid
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/*.tsbuildinfo
+frontend/.env
+frontend/.env.local
+
+# Système et éditeurs
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
