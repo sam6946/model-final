@@ -83,6 +83,35 @@ def readiness(_request) -> JsonResponse:
     return JsonResponse(payload, status=200 if healthy else 503)
 
 
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def api_index(request):
+    """Accueil du serveur d'API : dit ce qu'on est et où aller.
+
+    Sans cette vue, l'adresse racine répondait une page d'erreur 404 : un
+    visiteur (ou un prestataire) qui ouvre le serveur d'API directement croit à
+    une panne alors qu'il consulte simplement le mauvais service.
+    """
+    if not settings.DEBUG:
+        # En production, la racine appartient à l'application React : le serveur
+        # d'API n'est qu'un service derrière le proxy.
+        return spa_fallback(request)
+    return Response(
+        {
+            "service": "KEMTA API",
+            "message": (
+                "Ceci est le serveur d'API KEMTA. L'application se consulte depuis le site "
+                "(pages publiques, espaces client, entreprise et back-office)."
+            ),
+            "version": "v1",
+            "documentation": "/api/docs/",
+            "schema_openapi": "/api/schema/",
+            "sante": "/health/",
+            "back_office": "/admin/",
+        }
+    )
+
+
 @api_view(["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"])
 @permission_classes([AllowAny])
 def api_not_found(request, path: str = ""):

@@ -117,3 +117,28 @@ def test_expired_refresh_token_is_a_clean_401(api):
     payload = response.json()["error"]
     assert payload["code"] == "token_not_valid"
     assert "session" in payload["message"].lower()
+
+
+def test_api_root_explains_itself(api, settings):
+    """En développement, la racine de l'API annonce le service et sa documentation.
+
+    Cette adresse est souvent ouverte directement (aperçu, prestataire) : elle
+    doit expliquer ce qu'elle est plutôt que répondre « non trouvé ».
+    """
+    settings.DEBUG = True
+    response = api.get("/")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["service"] == "KEMTA API"
+    assert payload["documentation"] == "/api/docs/"
+    assert "application" in payload["message"].lower()
+
+
+def test_api_root_serves_the_app_in_production(api, settings):
+    """En production, la racine appartient à l'application React, pas à l'API."""
+    settings.DEBUG = False
+    response = api.get("/")
+
+    assert response.status_code == 200
+    assert response["Content-Type"].startswith("text/html")

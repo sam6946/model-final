@@ -11,7 +11,7 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
-from common.views import api_not_found, health, readiness, spa_fallback
+from common.views import api_index, api_not_found, health, readiness, spa_fallback
 
 api_v1 = [
     path("auth/", include("apps.accounts.urls")),
@@ -50,6 +50,8 @@ urlpatterns = [
     # React, qui donnerait un code 200 trompeur à un client d'API).
     path("api/<path:path>", api_not_found, name="api-not-found"),
 ]
+
+urlpatterns += [path("", api_index, name="api-index")]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
