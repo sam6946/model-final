@@ -15,6 +15,8 @@ from apps.dashboard.services import (
     build_company_dashboard,
     cached_dashboard,
 )
+from common.permission_codes import Perm
+from common.permissions import get_user_permissions
 
 
 class DashboardView(APIView):
@@ -26,8 +28,14 @@ class DashboardView(APIView):
         space = (request.query_params.get("space") or "").upper()
         user = request.user
 
-        if space == "ADMIN" or (not space and user.is_kemta_team):
-            if not user.is_kemta_team:
+        # Le back-office consolidé (chiffre d'affaires, encaissements, dossiers
+        # entreprises) n'est pas ouvert à toute l'équipe KEMTA : il exige le
+        # droit de consulter les statistiques. L'équipe terrain (rôle FIELD)
+        # n'a ni VIEW_STATISTICS ni VIEW_FINANCE — elle suit ses chantiers.
+        can_back_office = bool(user.is_superuser) or Perm.VIEW_STATISTICS in get_user_permissions(user)
+
+        if space == "ADMIN" or (not space and can_back_office):
+            if not can_back_office:
                 return Response(
                     {
                         "error": {

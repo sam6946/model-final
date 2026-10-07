@@ -97,3 +97,33 @@ def test_dashboard_recent_activity_is_limited(api, authed, admin_user):
     body = api.get(ENDPOINT).json()
     assert isinstance(body["recent_activity"], list)
     assert len(body["recent_activity"]) <= 20
+
+
+def test_field_team_does_not_receive_financial_platform_data(api, authed, db, reference_data):
+    """L'équipe terrain suit les chantiers, elle ne voit pas les encaissements.
+
+    Régression : le tableau de bord consolidé était servi à tout membre
+    « is_kemta_team », chiffre d'affaires et factures impayées compris.
+    """
+    from apps.accounts.models import Role, User
+
+    field = User.objects.create_user(
+        phone="+237655000901", password="Kemta!2026test", role=Role.FIELD,
+        first_name="Éric", last_name="Bilong",
+    )
+    authed(field)
+
+    response = api.get(ENDPOINT)
+    assert response.status_code == 200, response.content
+    body = response.json()
+    assert body["space"] != "ADMIN"
+    # Aucune donnée consolidée de la plateforme ne doit apparaître. (Le solde
+    # propre à l'utilisateur reste légitime : il est filtré sur son compte.)
+    payload = str(body)
+    assert "collected_total" not in payload
+    assert "pending_companies" not in payload
+    assert "projects_at_risk" not in payload
+    assert "subscriptions" not in payload
+
+    # Et l'accès explicite au back-office reste refusé.
+    assert api.get(ENDPOINT, {"space": "ADMIN"}).status_code == 403
