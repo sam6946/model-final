@@ -44,18 +44,55 @@ export class ApiError extends Error implements ApiErrorShape {
   }
 }
 
+/**
+ * Accès au stockage local, tolérant aux environnements restreints.
+ *
+ * Dans une iframe de prévisualisation, un onglet privé ou un navigateur qui
+ * bloque le stockage, `localStorage` peut lever une exception. Une connexion
+ * réussie ne doit jamais être perdue pour autant : on conserve alors la session
+ * en mémoire, le temps de l'onglet.
+ */
+const memoryStore = new Map<string, string>();
+
+function readKey(key: string): string | null {
+  if (memoryStore.has(key)) return memoryStore.get(key) ?? null;
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeKey(key: string, value: string): void {
+  memoryStore.set(key, value);
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    /* stockage indisponible : la session reste en mémoire */
+  }
+}
+
+function removeKey(key: string): void {
+  memoryStore.delete(key);
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    /* rien à faire */
+  }
+}
+
 export const tokens = {
-  access: () => localStorage.getItem(ACCESS_KEY),
-  refresh: () => localStorage.getItem(REFRESH_KEY),
+  access: () => readKey(ACCESS_KEY),
+  refresh: () => readKey(REFRESH_KEY),
   set(access: string, refresh?: string) {
-    localStorage.setItem(ACCESS_KEY, access);
-    if (refresh) localStorage.setItem(REFRESH_KEY, refresh);
+    writeKey(ACCESS_KEY, access);
+    if (refresh) writeKey(REFRESH_KEY, refresh);
   },
   clear() {
-    localStorage.removeItem(ACCESS_KEY);
-    localStorage.removeItem(REFRESH_KEY);
+    removeKey(ACCESS_KEY);
+    removeKey(REFRESH_KEY);
   },
-  hasSession: () => Boolean(localStorage.getItem(ACCESS_KEY) || localStorage.getItem(REFRESH_KEY)),
+  hasSession: () => Boolean(readKey(ACCESS_KEY) || readKey(REFRESH_KEY)),
 };
 
 export const api: AxiosInstance = axios.create({
@@ -93,7 +130,20 @@ api.interceptors.response.use(
     const status = error.response?.status ?? 0;
     const original = error.config as AxiosRequestConfig & { _retried?: boolean };
 
-    if (status === 401 && original && !original._retried && !original.url?.includes('/auth/')) {
+    // Ces points d'entrée ne doivent jamais être rejoués après un rafraîchissement :
+    // ce sont eux qui délivrent les jetons (un rejeu masquerait l'erreur réelle).
+    const noRetry = [
+      '/auth/login',
+      '/auth/register',
+      '/auth/otp',
+      '/otp/',
+      '/auth/token/refresh',
+      '/auth/password',
+      '/auth/phone',
+    ];
+    const rejouable = Boolean(original?.url) && !noRetry.some((fragment) => original.url!.includes(fragment));
+
+    if (status === 401 && original && !original._retried && rejouable) {
       original._retried = true;
       refreshInFlight = refreshInFlight ?? refreshAccessToken();
       const access = await refreshInFlight;
@@ -129,6 +179,21 @@ export function normalizeError(error: unknown): ApiError {
         status: 0,
       });
     }
+    if (status >= 500) {
+      // Panne serveur (ou service arrêté derrière le proxy) : message explicite
+      // plutôt qu'un « une erreur est survenue » qui laisse croire à une faute
+      // de saisie.
+      return new ApiError({
+        code: body?.code ?? 'server_error',
+        message:
+          body?.message ??
+          "KEMTA est momentanément indisponible (incident technique). Vos informations sont conservées : réessayez dans un instant.",
+        fields: body?.fields ?? {},
+        traceId: body?.trace_id,
+        status,
+      });
+    }
+
     return new ApiError({
       code: body?.code ?? 'error',
       message: body?.message ?? 'Une erreur est survenue. Réessayez dans un instant.',

@@ -56,6 +56,9 @@ export default function LoginPage() {
         password,
       });
       signIn({ access: data.access, refresh: data.refresh });
+      // On charge le profil avant de rediriger : si KEMTA ne répond pas, la
+      // personne reste ici avec une explication claire au lieu d'atterrir sur
+      // un écran « connexion requise » sans comprendre pourquoi.
       await refreshProfile();
       navigate(redirectTo, { replace: true });
     } catch (error) {
