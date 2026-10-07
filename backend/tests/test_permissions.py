@@ -136,3 +136,26 @@ def test_unpublished_company_is_not_public(api, company_owner):
     hidden = make_company(company_owner.owner, published=False, name="Entreprise en attente")
     assert isinstance(hidden, Company)
     assert api.get(f"/api/v1/companies/{hidden.slug}/").status_code == 404
+
+
+def test_staff_flag_does_not_grant_every_api_permission(api, authed, reference_data):
+    """« is_staff » ouvre l'admin Django, pas la facturation de l'API.
+
+    Régression : un chargé de suivi marqué staff recevait auparavant toutes les
+    permissions (plans, paiements, journaux d'audit). Seul un superutilisateur
+    peut court-circuiter le RBAC.
+    """
+    from apps.accounts.models import Role, User
+
+    user = User.objects.create_user(
+        phone="+237655000900", password="Kemta!2026test", role=Role.MANAGER,
+        first_name="Chargé", last_name="De Suivi", is_staff=True,
+    )
+    authed(user)
+
+    # Ses permissions métier restent disponibles…
+    assert api.get("/api/v1/admin/projects/").status_code == 200
+    # …mais la facturation et l'audit restent fermés.
+    assert api.get("/api/v1/admin/plans/").status_code == 403
+    assert api.get("/api/v1/admin/payments/").status_code == 403
+    assert api.get("/api/v1/admin/audit-logs/").status_code == 403

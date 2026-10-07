@@ -17,10 +17,18 @@ from django.core.cache import cache
 
 
 def get_user_permissions(user) -> set[str]:
-    """Permissions effectives (cache Redis 10 min, invalidé à la modification)."""
+    """Permissions effectives (cache Redis 10 min, invalidé à la modification).
+
+    Seul un superutilisateur court-circuite le RBAC. ``is_staff`` donne accès à
+    l'admin Django, PAS toutes les permissions de l'API : sans cette
+    distinction, un chargé de suivi marqué « staff » hériterait de la
+    facturation et des journaux d'audit (élévation de privilèges).
+
+    Le rôle ADMIN, lui, reçoit bien toutes les permissions côté API.
+    """
     if not user or not user.is_authenticated:
         return set()
-    if user.is_superuser or user.is_staff:
+    if user.is_superuser:
         from common.permission_codes import ALL_PERMISSIONS
 
         return set(ALL_PERMISSIONS.keys())
