@@ -5,6 +5,8 @@ import logging
 import time
 import uuid
 
+from django.utils import translation
+
 logger = logging.getLogger("kemta.request")
 
 # En-têtes qu'on accepte de journaliser (jamais d'Authorization ni de cookie).
@@ -52,3 +54,28 @@ class RequestContextMiddleware:
                 },
             )
         return response
+
+
+class FrenchLocaleMiddleware:
+    """Impose le français, quelle que soit la langue du navigateur.
+
+    KEMTA est un produit francophone destiné au Cameroun : ses messages d'erreur
+    sont affichés tels quels dans l'interface. Or ``LocaleMiddleware`` active la
+    langue annoncée par l'en-tête ``Accept-Language`` ; un navigateur configuré
+    en anglais recevait donc « Authentication credentials were not provided. »
+    au lieu de la phrase française équivalente.
+
+    Placer ce middleware juste après ``LocaleMiddleware`` garantit que la langue
+    choisie par le navigateur ne peut plus influencer le contenu des réponses :
+    le message affiché à un utilisateur camerounais est toujours en français.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        with translation.override("fr"):
+            request.LANGUAGE_CODE = "fr"
+            response = self.get_response(request)
+            response["Content-Language"] = "fr"
+            return response

@@ -11,7 +11,7 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
-from common.views import health, readiness, spa_fallback
+from common.views import api_not_found, health, readiness, spa_fallback
 
 api_v1 = [
     path("auth/", include("apps.accounts.urls")),
@@ -46,6 +46,9 @@ urlpatterns = [
         name="api-docs",
     ),
     path("admin/", admin.site.urls),
+    # Toute adresse d'API inconnue répond en JSON (jamais la page de l'application
+    # React, qui donnerait un code 200 trompeur à un client d'API).
+    path("api/<path:path>", api_not_found, name="api-not-found"),
 ]
 
 if settings.DEBUG:

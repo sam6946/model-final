@@ -11,6 +11,7 @@ from django.shortcuts import render
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
+from rest_framework.exceptions import NotFound
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -80,6 +81,18 @@ def readiness(_request) -> JsonResponse:
         "time": timezone.now().isoformat(),
     }
     return JsonResponse(payload, status=200 if healthy else 503)
+
+
+@api_view(["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"])
+@permission_classes([AllowAny])
+def api_not_found(request, path: str = ""):
+    """Réponse JSON pour une adresse d'API inconnue.
+
+    Sans cette vue, la route fourre-tout qui sert l'application React répondait
+    du HTML avec un code 200 : un client d'API croyait avoir reçu une réponse
+    valide. Un appel d'API inconnu doit renvoyer une erreur JSON explicite.
+    """
+    raise NotFound("Cette adresse d'API n'existe pas. Vérifiez l'adresse appelée.")
 
 
 def spa_fallback(request, path: str = ""):

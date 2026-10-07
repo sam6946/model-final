@@ -113,6 +113,17 @@ DRF_DEFAULT_PATTERNS = (
 
 DEFAULT_CODES = {"required", "blank", "invalid"}
 
+# Codes produits par le framework lorsqu'une session est absente ou invalide.
+# Leur traduction littérale est déroutante pour un utilisateur (« Le type de
+# jeton fourni n'est pas valide ») : on impose notre propre formulation.
+# Les erreurs métier de KEMTA utilisent d'autres codes et ne sont jamais
+# écrasées.
+SESSION_ERROR_MESSAGES = {
+    "not_authenticated": "Votre session a expiré ou vous n'êtes pas connecté. Connectez-vous pour continuer.",
+    "authentication_failed": "Votre session n'est plus valide. Reconnectez-vous pour continuer.",
+    "token_not_valid": "Votre session n'est plus valide. Reconnectez-vous pour continuer.",
+}
+
 
 def _is_default_message(text: str) -> bool:
     stripped = (text or "").strip()
@@ -196,6 +207,9 @@ def kemta_exception_handler(exc, context) -> Response | None:
         fields = _flatten(detail)
         first_field = next(iter(fields), None)
         message = fields[first_field][0] if first_field else "Les informations transmises ne sont pas valides."
+
+    if code in SESSION_ERROR_MESSAGES:
+        message = SESSION_ERROR_MESSAGES[code]
 
     if isinstance(exc, Throttled):
         code = "rate_limited"

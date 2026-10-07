@@ -24,6 +24,7 @@ from rest_framework.generics import ListAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import InvalidToken
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
 from apps.accounts.models import AuthAuditLog, DeviceSession, OTPPurpose, Role
@@ -264,13 +265,29 @@ class TokenRefreshView(APIView):
     """Renouvellement du jeton d'accès — les jetons sont rotatifs."""
 
     permission_classes = [AllowAny]
+    # Aucune authentification n'est requise ici (c'est justement le point
+    # d'entrée qui délivre les jetons), mais DRF a besoin de savoir quel en-tête
+    # annoncer : sans cela, il transforme un 401 en 403 et le client croit à un
+    # refus de droits plutôt qu'à une session à renouveler.
     authentication_classes: list = []
+
+    def get_authenticate_header(self, request):  # pragma: no cover - trivial
+        return 'Bearer realm="api"'
 
     def post(self, request):
         from apps.accounts.serializers import KemtaTokenRefreshSerializer
 
         serializer = KemtaTokenRefreshSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except TokenError as exc:
+            # Un jeton de rafraîchissement invalide, expiré ou déjà consommé est
+            # un cas normal (session ancienne, jeton volé) : la réponse attendue
+            # est un 401 explicite invitant à se reconnecter. Sans cette
+            # conversion, l'exception brute remontait en erreur 500 — un jeton
+            # périmé bloquait alors l'utilisateur sur un incident technique au
+            # lieu de lui permettre de se reconnecter.
+            raise InvalidToken(str(exc)) from exc
         return Response(serializer.validated_data)
 
 

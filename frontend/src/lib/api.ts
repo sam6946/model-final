@@ -92,6 +92,20 @@ export const tokens = {
     removeKey(ACCESS_KEY);
     removeKey(REFRESH_KEY);
   },
+  /**
+   * Ferme la session uniquement si le jeton de rafraîchissement fourni est
+   * toujours celui en cours.
+   *
+   * Un échec peut arriver tardivement (onglet laissé ouvert, réseau lent) :
+   * à ce moment-là l'utilisateur s'est peut-être reconnecté et détruire sa
+   * nouvelle session le renverrait sur un écran de connexion sans explication.
+   */
+  clearStale(expected: string | null): boolean {
+    if ((readKey(REFRESH_KEY) ?? null) !== expected) return false;
+    removeKey(ACCESS_KEY);
+    removeKey(REFRESH_KEY);
+    return true;
+  },
   hasSession: () => Boolean(readKey(ACCESS_KEY) || readKey(REFRESH_KEY)),
 };
 
@@ -107,20 +121,22 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-let refreshInFlight: Promise<string | null> | null = null;
+let refreshInFlight: Promise<RefreshOutcome> | null = null;
 
-async function refreshAccessToken(): Promise<string | null> {
-  const refresh = tokens.refresh();
-  if (!refresh) return null;
+type RefreshOutcome = { access: string } | { failure: 'rejected' | 'unreachable' };
+
+async function refreshAccessToken(refresh: string): Promise<RefreshOutcome> {
   try {
     const { data } = await axios.post('/api/v1/auth/token/refresh/', { refresh }, { timeout: 15000 });
     const access = data?.access as string | undefined;
-    if (!access) return null;
+    if (!access) return { failure: 'rejected' };
     tokens.set(access, data?.refresh);
-    return access;
-  } catch {
-    tokens.clear();
-    return null;
+    return { access };
+  } catch (error) {
+    // Un refus franc (4xx) signifie que la session est morte ; une panne
+    // réseau ne prouve rien et ne doit donc pas faire perdre la session.
+    const status = axios.isAxiosError(error) ? error.response?.status ?? 0 : 0;
+    return { failure: status >= 400 && status < 500 ? 'rejected' : 'unreachable' };
   }
 }
 
@@ -145,19 +161,117 @@ api.interceptors.response.use(
 
     if (status === 401 && original && !original._retried && rejouable) {
       original._retried = true;
-      refreshInFlight = refreshInFlight ?? refreshAccessToken();
-      const access = await refreshInFlight;
+      const refreshToken = tokens.refresh();
+
+      if (!refreshToken) {
+        if (tokens.clearStale(null)) window.dispatchEvent(new CustomEvent('kemta:session-expired'));
+        throw normalizeError(error);
+      }
+
+      refreshInFlight = refreshInFlight ?? refreshAccessToken(refreshToken);
+      const outcome = await refreshInFlight;
       refreshInFlight = null;
-      if (access) {
-        original.headers = { ...(original.headers ?? {}), Authorization: `Bearer ${access}` };
+
+      if ('access' in outcome) {
+        original.headers = { ...(original.headers ?? {}), Authorization: `Bearer ${outcome.access}` };
         return api.request(original);
       }
-      window.dispatchEvent(new CustomEvent('kemta:session-expired'));
+
+      if (outcome.failure === 'unreachable') {
+        // Le rafraîchissement n'a pas pu être vérifié : on n'efface rien et on
+        // le dit clairement, plutôt que de faire croire à une déconnexion.
+        throw new ApiError({
+          code: 'network_error',
+          message:
+            "Impossible de joindre KEMTA pour vérifier votre session. Vérifiez votre connexion internet puis réessayez : vous n'avez pas été déconnecté.",
+          fields: {},
+          status: 0,
+        });
+      }
+
+      if (tokens.clearStale(refreshToken)) window.dispatchEvent(new CustomEvent('kemta:session-expired'));
     }
 
     throw normalizeError(error);
   },
 );
+
+/**
+ * Messages techniques → français.
+ *
+ * L'API répond toujours en français (middleware côté serveur), mais un message
+ * brut peut arriver d'ailleurs : erreur de proxy, page d'administration Django,
+ * réponse d'un service tiers. Aucun texte anglais ne doit atteindre l'écran.
+ */
+const FRENCH_ERROR_CODES: Record<number, { code: string; message: string }> = {
+  401: {
+    code: 'not_authenticated',
+    message: "Votre session a expiré ou vous n'êtes pas connecté. Reconnectez-vous pour continuer.",
+  },
+  403: {
+    code: 'forbidden',
+    message: "Vous n'avez pas l'autorisation d'accéder à cette ressource.",
+  },
+  404: {
+    code: 'not_found',
+    message: "Cette ressource n'existe pas ou a été supprimée.",
+  },
+  405: {
+    code: 'method_not_allowed',
+    message: "Cette action n'est pas disponible sur cette adresse.",
+  },
+  415: {
+    code: 'unsupported_media_type',
+    message: "Le format des données envoyées n'est pas pris en charge.",
+  },
+  429: {
+    code: 'rate_limited',
+    message: 'Trop de tentatives en peu de temps. Merci de patienter quelques minutes avant de réessayer.',
+  },
+};
+
+const TECHNICAL_MESSAGE = new RegExp(
+  [
+    'authentication credentials were not provided',
+    'given token not valid',
+    'token is invalid or expired',
+    'you do not have permission',
+    'not found\\.?$',
+    'method .* not allowed',
+    'request was throttled',
+    'json parse error',
+    'unsupported media type',
+  ].join('|'),
+  'i',
+);
+
+/** Vrai si le texte est un message technique, donc jamais affichable. */
+function isTechnicalMessage(text: string | undefined): boolean {
+  if (!text) return true;
+  return TECHNICAL_MESSAGE.test(text.trim());
+}
+
+function frenchMessage(detail: string | undefined, status: number, code: string | undefined): string {
+  const fallback = FRENCH_ERROR_CODES[status];
+  if (isTechnicalMessage(detail)) {
+    if (fallback) return fallback.message;
+    if (code && FRENCH_ERROR_CODES_BY_CODE[code]) return FRENCH_ERROR_CODES_BY_CODE[code];
+    return detail && !fallback ? detail : 'Une erreur est survenue. Réessayez dans un instant.';
+  }
+  return detail as string;
+}
+
+const FRENCH_ERROR_CODES_BY_CODE: Record<string, string> = {
+  not_authenticated: FRENCH_ERROR_CODES[401].message,
+  authentication_failed: FRENCH_ERROR_CODES[401].message,
+  token_not_valid: FRENCH_ERROR_CODES[401].message,
+  permission_denied: FRENCH_ERROR_CODES[403].message,
+  forbidden: FRENCH_ERROR_CODES[403].message,
+  not_found: FRENCH_ERROR_CODES[404].message,
+  method_not_allowed: FRENCH_ERROR_CODES[405].message,
+  rate_limited: FRENCH_ERROR_CODES[429].message,
+  throttled: FRENCH_ERROR_CODES[429].message,
+};
 
 /** Transforme n'importe quelle panne en message français exploitable. */
 export function normalizeError(error: unknown): ApiError {
@@ -165,7 +279,11 @@ export function normalizeError(error: unknown): ApiError {
 
   if (axios.isAxiosError(error)) {
     const payload = error.response?.data as
-      | { error?: { code?: string; message?: string; fields?: Record<string, string[]>; trace_id?: string } }
+      | {
+          error?: { code?: string; message?: string; fields?: Record<string, string[]>; trace_id?: string };
+          detail?: unknown;
+          code?: unknown;
+        }
       | undefined;
     const status = error.response?.status ?? 0;
     const body = payload?.error;
@@ -194,9 +312,17 @@ export function normalizeError(error: unknown): ApiError {
       });
     }
 
+    // Filet de sécurité : certains cas (proxy, page d'administration, réponse
+    // brute de Django REST Framework) n'ont pas l'enveloppe KEMTA. On ne laisse
+    // jamais passer un message technique anglais dans une interface française.
+    const rawCode = body?.code ?? (typeof payload?.code === 'string' ? payload.code : undefined);
+    const rawDetail =
+      body?.message ??
+      (typeof payload?.detail === 'string' ? payload.detail : Array.isArray(payload?.detail) ? String(payload.detail[0]) : undefined);
+
     return new ApiError({
-      code: body?.code ?? 'error',
-      message: body?.message ?? 'Une erreur est survenue. Réessayez dans un instant.',
+      code: rawCode ?? FRENCH_ERROR_CODES[status]?.code ?? 'error',
+      message: frenchMessage(rawDetail, status, rawCode),
       fields: body?.fields ?? {},
       traceId: body?.trace_id,
       status,

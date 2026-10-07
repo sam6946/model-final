@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError, http, tokens } from '@/lib/api';
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // requise » identique à celui d'un simple visiteur.
   const [justExpired, setJustExpired] = useState(false);
 
-  const { data, error, isLoading, refetch } = useQuery<MePayload, ApiError>({
+  const { data, error, errorUpdatedAt, isLoading, refetch } = useQuery<MePayload, ApiError>({
     queryKey: qk.me(),
     enabled: hasSession,
     queryFn: () => http.get<MePayload>('/auth/me/'),
@@ -79,15 +79,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Un jeton refusé (expiré, révoqué, signé par un autre environnement) ne doit
   // pas laisser l'application dans un état intermédiaire : on repart proprement
   // déconnecté, ce qui évite de rester bloqué sur un écran d'accès protégé.
+  //
+  // Attention au piège : un refus *antérieur à la connexion en cours* ne
+  // concerne plus personne. Sans cette comparaison de dates, une erreur 401
+  // laissée dans le cache par une session morte effaçait aussitôt les jetons
+  // tout neufs que l'utilisateur venait d'obtenir, et la requête suivante
+  // partait sans en-tête d'authentification.
+  const sessionStartedAt = useRef(0);
   const sessionRefused = Boolean(error) && error?.status === 401;
 
   useEffect(() => {
-    if (sessionRefused && hasSession) {
+    if (sessionRefused && hasSession && errorUpdatedAt > sessionStartedAt.current) {
       tokens.clear();
       setHasSession(false);
       setJustExpired(true);
     }
-  }, [sessionRefused, hasSession]);
+  }, [sessionRefused, hasSession, errorUpdatedAt]);
 
   const signOut = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -108,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback((payload: { access: string; refresh: string }) => {
     tokens.set(payload.access, payload.refresh);
+    sessionStartedAt.current = Date.now();
     setHasSession(true);
     setJustExpired(false);
   }, []);
